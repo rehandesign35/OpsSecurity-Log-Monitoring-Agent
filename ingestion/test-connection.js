@@ -1,3 +1,7 @@
+if (typeof process.loadEnvFile === 'function') {
+  process.loadEnvFile();
+}
+
 const sources = [
   {
     name: 'Project 1 calls',
