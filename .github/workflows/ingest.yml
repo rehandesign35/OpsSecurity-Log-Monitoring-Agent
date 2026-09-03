@@ -49,3 +49,10 @@ jobs:
         env:
           PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
           PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
+
+      - name: Summarize incidents
+        run: node summarization/summarize.js
+        env:
+          PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
+          PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

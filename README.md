@@ -39,6 +39,16 @@ npm run correlate
 
 The scheduled workflow runs correlation after ingestion and detection.
 
+## Step 6: Incident summarization
+
+The summarization agent finds recent incidents without a summary, fetches their underlying anomalies, and uses `gpt-4o-mini` to write a concise engineer-facing report. Run it locally with:
+
+```bash
+npm run summarize
+```
+
+Configure `OPENAI_API_KEY` locally or as a GitHub Actions secret. Failed summaries remain null and are retried on the next run.
+
 ## Step 5: Source degradation monitoring
 
 Ingestion records each source result in Project 7's `source_health` table. The scheduled workflow then runs `npm run check-degradation`, which sends Slack messages only when a source changes between healthy and degraded states. Configure `SLACK_WEBHOOK_URL` locally or as a GitHub Actions secret. The `source_health` table must exist in Project 7 before running ingestion.
