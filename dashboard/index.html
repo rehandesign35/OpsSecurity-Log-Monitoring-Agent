@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ops security incident monitoring dashboard">
+  <title>Signal Desk / Project 7</title>
+  <link rel="stylesheet" href="/dashboard/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/dashboard/" aria-label="Signal Desk home">
+        <span class="brand-mark" aria-hidden="true">S/7</span>
+        <span><strong>Signal Desk</strong><small>Ops security / project 7</small></span>
+      </a>
+      <div class="topbar-meta">
+        <span class="live-dot"></span>
+        <span>Live monitor</span>
+        <span class="topbar-divider"></span>
+        <span id="last-refresh">Awaiting telemetry</span>
+        <button class="icon-button" id="refresh-button" type="button" title="Refresh dashboard" aria-label="Refresh dashboard">↻</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="masthead">
+        <div>
+          <p class="kicker">Operational picture</p>
+          <h1>Incident<br><em>timeline</em></h1>
+        </div>
+        <div class="masthead-note">
+          <span class="note-line"></span>
+          <p>One view across the systems that keep your portfolio moving.</p>
+        </div>
+      </section>
+
+      <section class="control-strip" aria-label="Dashboard filters">
+        <div class="filter-group">
+          <span class="filter-label">Window</span>
+          <div class="segmented" role="group" aria-label="Time range">
+            <button class="segment is-active" type="button" data-hours="24">24h</button>
+            <button class="segment" type="button" data-hours="168">7d</button>
+            <button class="segment" type="button" data-hours="720">30d</button>
+          </div>
+        </div>
+        <label class="filter-group status-filter">
+          <span class="filter-label">Status</span>
+          <select id="status-filter" aria-label="Filter incidents by status">
+            <option value="all">All incidents</option>
+            <option value="open">Open</option>
+            <option value="true_positive">True positive</option>
+            <option value="false_positive">False positive</option>
+          </select>
+        </label>
+        <div class="control-summary"><span id="incident-count">0</span> incidents in view</div>
+      </section>
+
+      <section class="metric-row" aria-label="Monitoring metrics">
+        <article class="metric metric-primary">
+          <div class="metric-label">Open incidents</div>
+          <strong id="open-count">—</strong>
+          <span class="metric-detail" id="open-detail">Loading current state</span>
+        </article>
+        <article class="metric">
+          <div class="metric-label">False-positive rate</div>
+          <strong id="fp-rate">—</strong>
+          <span class="metric-detail">Resolved incidents only</span>
+        </article>
+        <article class="metric">
+          <div class="metric-label">Avg. detection latency</div>
+          <strong id="latency">—</strong>
+          <span class="metric-detail">Incident to ticket</span>
+        </article>
+        <article class="metric metric-signal">
+          <div class="metric-label">Signal mix</div>
+          <strong id="signal-mix">—</strong>
+          <span class="metric-detail">Correlated / single-source</span>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="timeline-panel panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-index">01 / activity</p>
+              <h2>Recent incidents</h2>
+            </div>
+            <span class="panel-status" id="timeline-status">Syncing</span>
+          </div>
+          <div id="timeline" class="timeline" aria-live="polite"></div>
+        </div>
+
+        <aside class="side-rail">
+          <section class="panel breakdown-panel">
+            <div class="panel-heading compact">
+              <div><p class="section-index">02 / distribution</p><h2>Signal mix</h2></div>
+            </div>
+            <div class="breakdown-chart" aria-label="Correlated versus single-source incident counts">
+              <div class="chart-ring" id="chart-ring"><span id="chart-total">0</span><small>total</small></div>
+              <div class="legend">
+                <div><span class="legend-swatch correlated"></span><span>Correlated</span><strong id="correlated-count">0</strong></div>
+                <div><span class="legend-swatch single"></span><span>Single-source</span><strong id="single-count">0</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel health-panel">
+            <div class="panel-heading compact">
+              <div><p class="section-index">03 / system pulse</p><h2>Monitoring health</h2></div>
+            </div>
+            <div id="health-list" class="health-list" aria-live="polite"></div>
+          </section>
+
+          <section class="latency-panel">
+            <div class="latency-stamp">P7 / SPEED<br><strong id="latency-stamp-value">—</strong></div>
+            <p>Detection latency is measured from incident creation to ticket creation. It is a rough pipeline proxy, not an acknowledgement SLA.</p>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer"><span>Signal Desk / 2026</span><span>Project 7 operational telemetry</span></footer>
+  </div>
+  <script src="/dashboard/app.js" defer></script>
+</body>
+</html>

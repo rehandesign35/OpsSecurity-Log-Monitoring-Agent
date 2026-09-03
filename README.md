@@ -59,6 +59,10 @@ npm run alert-and-ticket
 
 The scheduled workflow runs it after summarization. Basic Slack incoming webhooks do not provide a message timestamp, so `tickets.slack_message_ts` remains null.
 
+## Step 9: Operations dashboard
+
+The static dashboard is available at `/dashboard/` and reads only from the server-side Vercel endpoints under `/api/`. It shows incident history, anomaly details, signal mix, false-positive resolution, source health, and detection latency. Project 7 Supabase service credentials stay on the server.
+
 ## Step 5: Source degradation monitoring
 
 Ingestion records each source result in Project 7's `source_health` table. The scheduled workflow then runs `npm run check-degradation`, which sends Slack messages only when a source changes between healthy and degraded states. Configure `SLACK_WEBHOOK_URL` locally or as a GitHub Actions secret. The `source_health` table must exist in Project 7 before running ingestion.
