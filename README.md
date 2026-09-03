@@ -38,3 +38,7 @@ npm run correlate
 ```
 
 The scheduled workflow runs correlation after ingestion and detection.
+
+## Step 5: Source degradation monitoring
+
+Ingestion records each source result in Project 7's `source_health` table. The scheduled workflow then runs `npm run check-degradation`, which sends Slack messages only when a source changes between healthy and degraded states. Configure `SLACK_WEBHOOK_URL` locally or as a GitHub Actions secret. The `source_health` table must exist in Project 7 before running ingestion.

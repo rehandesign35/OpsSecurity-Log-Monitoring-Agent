@@ -30,6 +30,14 @@ jobs:
           PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
           PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
 
+      - name: Check source degradation
+        if: ${{ always() }}
+        run: node api/check-degradation.js
+        env:
+          PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
+          PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Detect anomalies
         run: node detection/detect.js
         env:

@@ -5,7 +5,9 @@ if (typeof process.loadEnvFile === 'function' && fs.existsSync('.env')) {
 }
 
 const INGESTION_WINDOW_HOURS = 24;
+const FETCH_TIMEOUT_MS = 30_000;
 const DESTINATION_TABLE = 'ingested_events';
+const SOURCE_HEALTH_TABLE = 'source_health';
 
 const sources = [
   {
@@ -39,7 +41,10 @@ function createEndpoint(baseUrl, table) {
 }
 
 async function requestJson(endpoint, options) {
-  const response = await fetch(endpoint, options);
+  const response = await fetch(endpoint, {
+    ...options,
+    signal: options.signal ?? AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   const responseBody = await response.text();
 
   if (!response.ok) {
@@ -156,6 +161,28 @@ async function upsertEvents(baseUrl, serviceKey, events) {
   }
 }
 
+async function recordSourceHealth(project7Url, project7Key, source, status, errorMessage) {
+  const endpoint = createEndpoint(project7Url, SOURCE_HEALTH_TABLE);
+  const rows = await requestJson(endpoint, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(project7Key),
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify({
+      source: source.name,
+      run_id: process.env.GITHUB_RUN_ID || 'local',
+      status,
+      error_message: errorMessage,
+    }),
+  });
+
+  if (!Array.isArray(rows)) {
+    throw new Error('source_health response body was not an array');
+  }
+}
+
 async function ingestSource(source, baseUrl, serviceKey, project7Url, project7Key, cutoff) {
   const rows = await fetchSourceRows(source, serviceKey, baseUrl, cutoff);
   const events = rows.map((row) => normalizeRow(source, row));
@@ -171,17 +198,29 @@ async function main() {
   const cutoff = new Date(Date.now() - INGESTION_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
 
   const results = await Promise.all(sources.map(async (source) => {
+    let project7Url;
+    let project7Key;
     try {
-      const [baseUrl, serviceKey, project7Url, project7Key] = getRequiredEnv(
+      const [baseUrl, serviceKey, destinationUrl, destinationKey] = getRequiredEnv(
         source.urlVariable,
         source.keyVariable,
         'PROJECT7_SUPABASE_URL',
         'PROJECT7_SUPABASE_SERVICE_KEY',
       );
+      project7Url = destinationUrl;
+      project7Key = destinationKey;
       await ingestSource(source, baseUrl, serviceKey, project7Url, project7Key, cutoff);
+      await recordSourceHealth(project7Url, project7Key, source, 'healthy', null);
       return true;
     } catch (error) {
       console.error(`FAILED - ${source.label}: ${error.message}`);
+      if (project7Url && project7Key) {
+        try {
+          await recordSourceHealth(project7Url, project7Key, source, 'degraded', error.message);
+        } catch (healthError) {
+          console.error(`FAILED - ${source.label} health tracking: ${healthError.message}`);
+        }
+      }
       return false;
     }
   }));
