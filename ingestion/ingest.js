@@ -96,7 +96,7 @@ function normalizeRow(source, row) {
 async function fetchSourceRows(source, serviceKey, baseUrl, cutoff) {
   const endpoint = createEndpoint(baseUrl, source.table);
   endpoint.searchParams.set('select', '*');
-  endpoint.searchParams.set('or', `(created_at.gte.${cutoff},updated_at.gte.${cutoff})`);
+  endpoint.searchParams.set('created_at', `gte.${cutoff}`);
   endpoint.searchParams.set('order', 'created_at.desc');
 
   const rows = await requestJson(endpoint, {
