@@ -9,6 +9,7 @@
     "detect": "node detection/detect.js",
     "correlate": "node detection/correlate.js",
     "check-degradation": "node api/check-degradation.js",
-    "summarize": "node summarization/summarize.js"
+    "summarize": "node summarization/summarize.js",
+    "alert-and-ticket": "node api/alert-and-ticket.js"
   }
 }

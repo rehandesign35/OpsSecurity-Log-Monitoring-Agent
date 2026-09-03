@@ -56,3 +56,10 @@ jobs:
           PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
           PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: Alert and create tickets
+        run: node api/alert-and-ticket.js
+        env:
+          PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
+          PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
