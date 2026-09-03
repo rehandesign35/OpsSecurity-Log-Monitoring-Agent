@@ -190,15 +190,23 @@ async function detectStatistical(source, events, project7Url, project7Key) {
 }
 
 function findRepeatedFailureMatch(events) {
-  const failures = events.filter((event) => FAILURE_STATUSES.has(String(event.status).toLowerCase()));
   const windowMilliseconds = REPEATED_FAILURE_WINDOW_MINUTES * 60 * 1000;
+  let failureStreak = [];
 
-  for (let startIndex = 0; startIndex <= failures.length - REPEATED_FAILURE_THRESHOLD; startIndex += 1) {
-    const windowFailures = failures.slice(startIndex, startIndex + REPEATED_FAILURE_THRESHOLD);
-    const firstTimestamp = new Date(windowFailures[0].event_timestamp).getTime();
-    const lastTimestamp = new Date(windowFailures[windowFailures.length - 1].event_timestamp).getTime();
-    if (!Number.isNaN(firstTimestamp) && !Number.isNaN(lastTimestamp) && lastTimestamp - firstTimestamp <= windowMilliseconds) {
-      return windowFailures;
+  for (const event of events) {
+    if (!FAILURE_STATUSES.has(String(event.status).toLowerCase())) {
+      failureStreak = [];
+      continue;
+    }
+
+    failureStreak.push(event);
+    if (failureStreak.length >= REPEATED_FAILURE_THRESHOLD) {
+      const windowFailures = failureStreak.slice(-REPEATED_FAILURE_THRESHOLD);
+      const firstTimestamp = new Date(windowFailures[0].event_timestamp).getTime();
+      const lastTimestamp = new Date(windowFailures[windowFailures.length - 1].event_timestamp).getTime();
+      if (!Number.isNaN(firstTimestamp) && !Number.isNaN(lastTimestamp) && lastTimestamp - firstTimestamp <= windowMilliseconds) {
+        return windowFailures;
+      }
     }
   }
 
