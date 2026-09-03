@@ -92,7 +92,7 @@ function normalizeRow(source, row) {
     source: source.name,
     source_row_id: getSourceRowId(row),
     event_timestamp: getEventTimestamp(row),
-    status: row.status ?? row.state ?? 'unknown',
+    status: row.status ?? row.state ?? row.outcome ?? 'unknown',
     raw_payload: row,
     ingested_at: new Date().toISOString(),
   };

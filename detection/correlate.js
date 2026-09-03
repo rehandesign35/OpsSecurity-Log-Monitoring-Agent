@@ -154,7 +154,7 @@ function createIncident(group) {
     window_end: windowEnd,
     sources,
     anomaly_ids: anomalyIds,
-    summary: `${incidentType} incident involving ${anomalyIds.length} anomal${anomalyIds.length === 1 ? 'y' : 'ies'} from ${sources.join(', ')}`,
+    summary: null,
   };
 }
 

@@ -10,7 +10,7 @@ const REPEATED_FAILURE_THRESHOLD = 3;
 const REPEATED_FAILURE_WINDOW_MINUTES = 15;
 const EVENTS_TABLE = 'ingested_events';
 const ANOMALIES_TABLE = 'anomalies';
-const FAILURE_STATUSES = new Set(['failed', 'dead_letter']);
+const FAILURE_STATUSES = new Set(['failed', 'dead_letter', 'dead_lettered']);
 
 const sources = [
   {

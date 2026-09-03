@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const { randomUUID } = require('node:crypto');
 
 if (typeof process.loadEnvFile === 'function' && fs.existsSync('.env')) {
   process.loadEnvFile();
@@ -74,10 +75,18 @@ function parseOptions() {
 async function insertTestRows(source, baseUrl, serviceKey, count, status) {
   const endpoint = createEndpoint(baseUrl, source.table);
   const now = Date.now();
-  const rows = Array.from({ length: count }, (_, index) => ({
-    status,
-    created_at: new Date(now - ((count - index) * MINUTES_BETWEEN_ROWS * 60 * 1000)).toISOString(),
-  }));
+  const rows = Array.from({ length: count }, (_, index) => {
+    const createdAt = new Date(now - ((count - index) * MINUTES_BETWEEN_ROWS * 60 * 1000)).toISOString();
+    if (source.table === 'calls') {
+      return { outcome: status, created_at: createdAt };
+    }
+    return {
+      run_id: `synthetic-${randomUUID()}`,
+      workflow_name: 'synthetic-anomaly-test',
+      status: status === 'dead_letter' ? 'dead_lettered' : status,
+      created_at: createdAt,
+    };
+  });
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
