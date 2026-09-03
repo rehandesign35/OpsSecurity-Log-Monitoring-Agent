@@ -6,6 +6,7 @@
   "scripts": {
     "test-connection": "node ingestion/test-connection.js",
     "ingest": "node ingestion/ingest.js",
-    "detect": "node detection/detect.js"
+    "detect": "node detection/detect.js",
+    "correlate": "node detection/correlate.js"
   }
 }

@@ -28,3 +28,13 @@ npm run ingest
 ```
 
 GitHub Actions runs the same command every 30 minutes and supports manual dispatch. Configure all six Supabase values as repository secrets before enabling the workflow.
+
+## Step 4: Incident correlation
+
+The correlation agent groups unattached open anomalies from the last 24 hours by overlapping or nearby time windows and stores each group in the `incidents` table. Run it locally with:
+
+```bash
+npm run correlate
+```
+
+The scheduled workflow runs correlation after ingestion and detection.

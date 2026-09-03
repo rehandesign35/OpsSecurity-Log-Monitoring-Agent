@@ -35,3 +35,9 @@ jobs:
         env:
           PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
           PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
+
+      - name: Correlate incidents
+        run: node detection/correlate.js
+        env:
+          PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
+          PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
