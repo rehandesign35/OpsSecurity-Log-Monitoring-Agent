@@ -1,0 +1,9 @@
+{
+  "name": "ops-security-log-monitoring-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ops and security log-monitoring agent for prior project logs.",
+  "scripts": {
+    "test-connection": "node ingestion/test-connection.js"
+  }
+}
