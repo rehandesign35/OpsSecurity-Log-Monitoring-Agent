@@ -1,0 +1,31 @@
+name: Ingest recent events
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Ingest recent events
+        run: node ingestion/ingest.js
+        env:
+          PROJECT1_SUPABASE_URL: ${{ secrets.PROJECT1_SUPABASE_URL }}
+          PROJECT1_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT1_SUPABASE_SERVICE_KEY }}
+          PROJECT5_SUPABASE_URL: ${{ secrets.PROJECT5_SUPABASE_URL }}
+          PROJECT5_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT5_SUPABASE_SERVICE_KEY }}
+          PROJECT7_SUPABASE_URL: ${{ secrets.PROJECT7_SUPABASE_URL }}
+          PROJECT7_SUPABASE_SERVICE_KEY: ${{ secrets.PROJECT7_SUPABASE_SERVICE_KEY }}
