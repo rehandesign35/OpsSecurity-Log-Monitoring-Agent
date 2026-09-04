@@ -1,5 +1,7 @@
 const { sendError, supabaseRequest } = require('./_supabase');
 
+const MAX_LIVE_DETECTION_LATENCY_MS = 2 * 60 * 60 * 1000;
+
 function getCutoff(query) {
   if (query.from) {
     return query.from;
@@ -31,10 +33,10 @@ module.exports = async function stats(req, res) {
     const detectedIncidents = incidents.filter((incident) => Array.isArray(incident.anomaly_ids) && incident.anomaly_ids.length > 0);
     const resolved = detectedIncidents.filter((incident) => ['true_positive', 'false_positive'].includes(incident.status));
     const falsePositives = resolved.filter((incident) => incident.status === 'false_positive').length;
-    const latencies = incidents
+    const latencies = detectedIncidents
       .map((incident) => {
         const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
-        return Number.isFinite(latency) && latency >= 0 ? latency : null;
+        return Number.isFinite(latency) && latency >= 0 && latency <= MAX_LIVE_DETECTION_LATENCY_MS ? latency : null;
       })
       .filter((latency) => latency !== null);
 

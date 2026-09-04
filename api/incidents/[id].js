@@ -1,5 +1,7 @@
 const { sendError, supabaseRequest } = require('../_supabase');
 
+const MAX_LIVE_DETECTION_LATENCY_MS = 2 * 60 * 60 * 1000;
+
 module.exports = async function incidentDetail(req, res) {
   const incidentId = req.query?.id;
 
@@ -30,7 +32,7 @@ module.exports = async function incidentDetail(req, res) {
       const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
       res.status(200).json({
         ...incident,
-        detection_latency_ms: Number.isFinite(latency) && latency >= 0 ? latency : null,
+        detection_latency_ms: Number.isFinite(latency) && latency >= 0 && latency <= MAX_LIVE_DETECTION_LATENCY_MS ? latency : null,
         anomalies,
       });
       return;

@@ -1,5 +1,7 @@
 const { sendError, supabaseRequest } = require('./_supabase');
 
+const MAX_LIVE_DETECTION_LATENCY_MS = 2 * 60 * 60 * 1000;
+
 function getCutoff(query) {
   if (query.from) {
     return query.from;
@@ -39,7 +41,7 @@ module.exports = async function incidents(req, res) {
       const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
       return {
         ...incident,
-        detection_latency_ms: Number.isFinite(latency) && latency >= 0 ? latency : null,
+        detection_latency_ms: Number.isFinite(latency) && latency >= 0 && latency <= MAX_LIVE_DETECTION_LATENCY_MS ? latency : null,
         ticket: ticketByIncident.get(String(incident.id)) || null,
       };
     }));
