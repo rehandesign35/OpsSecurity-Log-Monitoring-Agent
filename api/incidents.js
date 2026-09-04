@@ -1,6 +1,5 @@
 const { sendError, supabaseRequest } = require('./_supabase');
-
-const MAX_LIVE_DETECTION_LATENCY_MS = 2 * 60 * 60 * 1000;
+const { detectionLatencyMs, uniqueAnomalyIds } = require('./_latency');
 
 function getCutoff(query) {
   if (query.from) {
@@ -10,6 +9,18 @@ function getCutoff(query) {
   const hours = Number(query.hours || 168);
   const safeHours = Number.isFinite(hours) && hours > 0 ? Math.min(hours, 24 * 365) : 168;
   return new Date(Date.now() - safeHours * 60 * 60 * 1000).toISOString();
+}
+
+async function fetchAnomaliesById(ids) {
+  if (ids.length === 0) {
+    return new Map();
+  }
+
+  const anomalies = await supabaseRequest('anomalies', {}, {
+    select: 'id,detected_at',
+    id: `in.(${ids.join(',')})`,
+  });
+  return new Map(anomalies.map((anomaly) => [String(anomaly.id), anomaly]));
 }
 
 module.exports = async function incidents(req, res) {
@@ -29,22 +40,22 @@ module.exports = async function incidents(req, res) {
     });
 
     const incidentIds = incidents.map((incident) => incident.id);
-    const tickets = incidentIds.length > 0
-      ? await supabaseRequest('tickets', {}, {
-        select: 'id,incident_id,title,priority,status,slack_message_ts,created_at',
-        incident_id: `in.(${incidentIds.join(',')})`,
-      })
-      : [];
+    const [tickets, anomaliesById] = await Promise.all([
+      incidentIds.length > 0
+        ? supabaseRequest('tickets', {}, {
+          select: 'id,incident_id,title,priority,status,slack_message_ts,created_at',
+          incident_id: `in.(${incidentIds.join(',')})`,
+        })
+        : Promise.resolve([]),
+      fetchAnomaliesById(uniqueAnomalyIds(incidents)),
+    ]);
     const ticketByIncident = new Map(tickets.map((ticket) => [String(ticket.incident_id), ticket]));
 
-    res.status(200).json(incidents.map((incident) => {
-      const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
-      return {
-        ...incident,
-        detection_latency_ms: Number.isFinite(latency) && latency >= 0 && latency <= MAX_LIVE_DETECTION_LATENCY_MS ? latency : null,
-        ticket: ticketByIncident.get(String(incident.id)) || null,
-      };
-    }));
+    res.status(200).json(incidents.map((incident) => ({
+      ...incident,
+      detection_latency_ms: detectionLatencyMs(incident, anomaliesById),
+      ticket: ticketByIncident.get(String(incident.id)) || null,
+    })));
   } catch (error) {
     sendError(res, error);
   }

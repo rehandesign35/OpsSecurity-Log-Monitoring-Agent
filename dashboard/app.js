@@ -84,7 +84,7 @@ function renderTimeline(incidents) {
       <div class="incident-action">
         <span class="priority priority-${escapeHtml(priority)}">${escapeHtml(priority)}</span>
         <button class="detail-button" type="button" data-detail="${escapeHtml(incident.id)}" aria-expanded="false">Details +</button>
-        ${status === 'open' ? `<div class="resolution-actions"><button type="button" data-resolution="resolved" data-id="${escapeHtml(incident.id)}">Resolve</button><button type="button" data-resolution="true_positive" data-id="${escapeHtml(incident.id)}">True +</button><button type="button" data-resolution="false_positive" data-id="${escapeHtml(incident.id)}">False +</button></div>` : ''}
+        ${status === 'open' || status === 'resolved' ? `<div class="resolution-actions">${status === 'open' ? `<button type="button" data-resolution="resolved" data-id="${escapeHtml(incident.id)}">Resolve</button>` : ''}<button type="button" data-resolution="true_positive" data-id="${escapeHtml(incident.id)}">True +</button><button type="button" data-resolution="false_positive" data-id="${escapeHtml(incident.id)}">False +</button></div>` : ''}
       </div>
     </article>`;
   }).join('');

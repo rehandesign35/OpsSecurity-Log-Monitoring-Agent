@@ -49,6 +49,7 @@
           <select id="status-filter" aria-label="Filter incidents by status">
             <option value="all">All incidents</option>
             <option value="open">Open</option>
+            <option value="resolved">Resolved</option>
             <option value="true_positive">True positive</option>
             <option value="false_positive">False positive</option>
           </select>
@@ -70,7 +71,7 @@
         <article class="metric">
           <div class="metric-label">Avg. detection latency</div>
           <strong id="latency">—</strong>
-          <span class="metric-detail">Event to incident</span>
+          <span class="metric-detail">Live detect to incident</span>
         </article>
         <article class="metric metric-signal">
           <div class="metric-label">Signal mix</div>
@@ -122,7 +123,7 @@
 
           <section class="latency-panel">
             <div class="latency-stamp">P7 / SPEED<br><strong id="latency-stamp-value">—</strong></div>
-            <p>Detection latency is measured from the live event window to incident creation.</p>
+            <p>Detection latency is measured from live anomaly detection to incident creation, excluding seeded rows.</p>
           </section>
         </aside>
       </section>

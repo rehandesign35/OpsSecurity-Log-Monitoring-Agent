@@ -1,6 +1,5 @@
 const { sendError, supabaseRequest } = require('../_supabase');
-
-const MAX_LIVE_DETECTION_LATENCY_MS = 2 * 60 * 60 * 1000;
+const { detectionLatencyMs } = require('../_latency');
 
 module.exports = async function incidentDetail(req, res) {
   const incidentId = req.query?.id;
@@ -29,10 +28,10 @@ module.exports = async function incidentDetail(req, res) {
           id: `in.(${incident.anomaly_ids.join(',')})`,
         })
         : [];
-      const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
+      const anomaliesById = new Map(anomalies.map((anomaly) => [String(anomaly.id), anomaly]));
       res.status(200).json({
         ...incident,
-        detection_latency_ms: Number.isFinite(latency) && latency >= 0 && latency <= MAX_LIVE_DETECTION_LATENCY_MS ? latency : null,
+        detection_latency_ms: detectionLatencyMs(incident, anomaliesById),
         anomalies,
       });
       return;
