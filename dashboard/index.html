@@ -107,7 +107,15 @@
 
           <section class="panel health-panel">
             <div class="panel-heading compact">
-              <div><p class="section-index">03 / system pulse</p><h2>Monitoring health</h2></div>
+              <div><p class="section-index">03 / activity trace</p><h2>Incident pulse</h2></div>
+            </div>
+            <div class="activity-chart" id="activity-chart" aria-label="Incident activity over the selected time range"></div>
+            <div class="activity-legend"><span><i class="correlated"></i> Correlated</span><span><i class="single"></i> Single-source</span></div>
+          </section>
+
+          <section class="panel health-panel">
+            <div class="panel-heading compact">
+              <div><p class="section-index">04 / system pulse</p><h2>Monitoring health</h2></div>
             </div>
             <div id="health-list" class="health-list" aria-live="polite"></div>
           </section>

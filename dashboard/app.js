@@ -98,6 +98,37 @@ function renderHealth(health) {
   }).join('');
 }
 
+function renderActivityGraph(incidents) {
+  const chart = $('#activity-chart');
+  const bucketCount = state.hours <= 24 ? 12 : 14;
+  const bucketSize = (state.hours * 60 * 60 * 1000) / bucketCount;
+  const now = Date.now();
+  const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+    start: now - (bucketCount - index) * bucketSize,
+    correlated: 0,
+    single: 0,
+  }));
+
+  incidents.forEach((incident) => {
+    const timestamp = new Date(incident.created_at).getTime();
+    const bucket = buckets.find((candidate, index) => timestamp >= candidate.start && timestamp < candidate.start + bucketSize && index < bucketCount);
+    if (bucket) {
+      if (incident.incident_type === 'correlated') bucket.correlated += 1;
+      else bucket.single += 1;
+    }
+  });
+
+  const maximum = Math.max(1, ...buckets.map((bucket) => bucket.correlated + bucket.single));
+  chart.innerHTML = buckets.every((bucket) => bucket.correlated + bucket.single === 0)
+    ? '<span class="activity-empty">No incident activity in this window.</span>'
+    : buckets.map((bucket) => {
+      const correlatedHeight = bucket.correlated ? Math.max(6, (bucket.correlated / maximum) * 100) : 0;
+      const singleHeight = bucket.single ? Math.max(6, (bucket.single / maximum) * 100) : 0;
+      const label = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(bucket.start + bucketSize / 2));
+      return `<div class="activity-column" title="${escapeHtml(label)} / correlated ${bucket.correlated} / single-source ${bucket.single}"><div class="activity-bar" style="height:${correlatedHeight}%"></div><div class="activity-bar single" style="height:${singleHeight}%"></div><span class="activity-label">${escapeHtml(label)}</span></div>`;
+    }).join('');
+}
+
 function renderStats(stats, incidents) {
   const openCount = incidents.filter((incident) => incident.status === 'open').length;
   const total = stats.correlated + stats.single_source;
@@ -127,6 +158,7 @@ async function loadDashboard() {
     state.incidents = incidents;
     renderTimeline(incidents);
     renderStats(stats, incidents);
+    renderActivityGraph(incidents);
     renderHealth(health);
     $('#last-refresh').textContent = `Updated ${new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date())}`;
     $('#timeline-status').textContent = 'Live';
