@@ -186,9 +186,29 @@ button:focus-visible, select:focus-visible { outline: 3px solid rgba(29, 82, 232
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .panel, .metric { animation: rise-in .55s ease both; }
+  body { background-position: 0 0, 0 0, 0 0; animation: telemetry-drift 18s linear infinite; }
+  .panel, .metric { animation: rise-in .55s cubic-bezier(.2,.8,.2,1) both; }
+  .live-dot { animation: live-pulse 2.2s ease-in-out infinite; }
+  .masthead h1 em { animation: signal-flicker 4.5s steps(1, end) infinite; }
+  .activity-bar { transform-origin: bottom; animation: bar-rise .7s cubic-bezier(.2,.8,.2,1) both; }
+  .activity-column:nth-child(2) .activity-bar { animation-delay: .04s; }
+  .activity-column:nth-child(3) .activity-bar { animation-delay: .08s; }
+  .activity-column:nth-child(4) .activity-bar { animation-delay: .12s; }
+  .activity-column:nth-child(5) .activity-bar { animation-delay: .16s; }
+  .activity-column:nth-child(6) .activity-bar { animation-delay: .2s; }
+  .activity-column:nth-child(7) .activity-bar { animation-delay: .24s; }
+  .activity-column:nth-child(8) .activity-bar { animation-delay: .28s; }
+  .activity-column:nth-child(9) .activity-bar { animation-delay: .32s; }
+  .activity-column:nth-child(10) .activity-bar { animation-delay: .36s; }
+  .activity-column:nth-child(11) .activity-bar { animation-delay: .4s; }
+  .activity-column:nth-child(12) .activity-bar { animation-delay: .44s; }
+  .icon-button:active { transform: rotate(25deg) scale(.92); }
   .timeline-item:nth-child(2) { animation-delay: .06s; }
   .timeline-item:nth-child(3) { animation-delay: .12s; }
   .timeline-item:nth-child(4) { animation-delay: .18s; }
 }
 @keyframes rise-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes telemetry-drift { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 48px 48px, 48px 48px, 0 8px; } }
+@keyframes live-pulse { 0%, 100% { box-shadow: 0 0 0 4px var(--mint-soft), 0 0 8px var(--mint); } 50% { box-shadow: 0 0 0 6px var(--mint-soft), 0 0 18px var(--mint); } }
+@keyframes signal-flicker { 0%, 86%, 100% { opacity: 1; } 87% { opacity: .55; } 88% { opacity: 1; } 91% { opacity: .75; } 92% { opacity: 1; } }
+@keyframes bar-rise { from { opacity: .2; transform: scaleY(0); } to { opacity: 1; transform: scaleY(1); } }
