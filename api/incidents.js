@@ -35,10 +35,14 @@ module.exports = async function incidents(req, res) {
       : [];
     const ticketByIncident = new Map(tickets.map((ticket) => [String(ticket.incident_id), ticket]));
 
-    res.status(200).json(incidents.map((incident) => ({
-      ...incident,
-      ticket: ticketByIncident.get(String(incident.id)) || null,
-    })));
+    res.status(200).json(incidents.map((incident) => {
+      const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
+      return {
+        ...incident,
+        detection_latency_ms: Number.isFinite(latency) && latency >= 0 ? latency : null,
+        ticket: ticketByIncident.get(String(incident.id)) || null,
+      };
+    }));
   } catch (error) {
     sendError(res, error);
   }

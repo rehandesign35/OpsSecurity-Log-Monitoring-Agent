@@ -192,9 +192,10 @@ async function ingestSource(source, baseUrl, serviceKey, project7Url, project7Ke
 
   const existingCount = events.filter((event) => existingKeys.has(`${event.source}:${event.source_row_id}`)).length;
   console.log(`${source.label}: fetched ${rows.length}; new ${events.length - existingCount}; already existing ${existingCount}`);
+  return { fetched: rows.length, newCount: events.length - existingCount };
 }
 
-async function main() {
+async function runIngestion({ strict = false } = {}) {
   const cutoff = new Date(Date.now() - INGESTION_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
 
   const results = await Promise.all(sources.map(async (source) => {
@@ -209,11 +210,14 @@ async function main() {
       );
       project7Url = destinationUrl;
       project7Key = destinationKey;
-      await ingestSource(source, baseUrl, serviceKey, project7Url, project7Key, cutoff);
+      const result = await ingestSource(source, baseUrl, serviceKey, project7Url, project7Key, cutoff);
       await recordSourceHealth(project7Url, project7Key, source, 'healthy', null);
-      return true;
+      return { succeeded: true, ...result };
     } catch (error) {
       console.error(`FAILED - ${source.label}: ${error.message}`);
+      if (strict) {
+        throw error;
+      }
       if (project7Url && project7Key) {
         try {
           await recordSourceHealth(project7Url, project7Key, source, 'degraded', error.message);
@@ -221,16 +225,29 @@ async function main() {
           console.error(`FAILED - ${source.label} health tracking: ${healthError.message}`);
         }
       }
-      return false;
+      return { succeeded: false, fetched: 0, newCount: 0 };
     }
   }));
 
-  if (results.every((succeeded) => !succeeded)) {
+  if (results.every((result) => !result.succeeded)) {
     throw new Error('both source ingestion checks failed');
   }
+
+  return {
+    fetched: results.reduce((sum, result) => sum + result.fetched, 0),
+    newCount: results.reduce((sum, result) => sum + result.newCount, 0),
+  };
 }
 
-main().catch((error) => {
-  console.error(`Ingestion failed: ${error.message}`);
-  process.exitCode = 1;
-});
+async function main() {
+  await runIngestion();
+}
+
+module.exports = { runIngestion };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`Ingestion failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

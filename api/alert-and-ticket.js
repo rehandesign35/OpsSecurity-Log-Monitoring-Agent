@@ -188,9 +188,10 @@ async function processIncident(incident, project7Url, project7Key, webhookUrl) {
   const slackMessageTs = await sendSlackAlert(webhookUrl, title, priority, incident);
   await createTicket(project7Url, project7Key, incident, title, priority, slackMessageTs);
   console.log(`Incident ${incident.id} processed: priority=${priority}, Slack sent=yes, ticket created=yes`);
+  return { slackFired: true, ticketCreated: true };
 }
 
-async function main() {
+async function runAlertAndTicket({ strict = false } = {}) {
   const [project7Url, project7Key, webhookUrl] = getRequiredEnv(
     'PROJECT7_SUPABASE_URL',
     'PROJECT7_SUPABASE_SERVICE_KEY',
@@ -200,16 +201,34 @@ async function main() {
   const incidents = await fetchEligibleIncidents(project7Url, project7Key, cutoff);
   console.log(`Found ${incidents.length} summarized open incidents without tickets in the last ${INCIDENT_LOOKBACK_HOURS} hours`);
 
-  await Promise.all(incidents.map(async (incident) => {
+  const results = await Promise.all(incidents.map(async (incident) => {
     try {
-      await processIncident(incident, project7Url, project7Key, webhookUrl);
+      return await processIncident(incident, project7Url, project7Key, webhookUrl);
     } catch (error) {
       console.error(`FAILED - Incident ${incident.id}: ${error.message}. No ticket created; it will be retried.`);
+      if (strict) {
+        throw error;
+      }
+      return { slackFired: false, ticketCreated: false };
     }
   }));
+
+  return {
+    incidentsProcessed: results.length,
+    slackFired: results.some((result) => result.slackFired),
+    ticketsCreated: results.filter((result) => result.ticketCreated).length,
+  };
 }
 
-main().catch((error) => {
-  console.error(`Alert and ticket processing failed: ${error.message}`);
-  process.exitCode = 1;
-});
+async function main() {
+  await runAlertAndTicket();
+}
+
+module.exports = { runAlertAndTicket };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`Alert and ticket processing failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

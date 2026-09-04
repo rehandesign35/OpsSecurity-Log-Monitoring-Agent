@@ -27,14 +27,19 @@ module.exports = async function incidentDetail(req, res) {
           id: `in.(${incident.anomaly_ids.join(',')})`,
         })
         : [];
-      res.status(200).json({ ...incident, anomalies });
+      const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
+      res.status(200).json({
+        ...incident,
+        detection_latency_ms: Number.isFinite(latency) && latency >= 0 ? latency : null,
+        anomalies,
+      });
       return;
     }
 
     if (req.method === 'PATCH') {
       const nextStatus = req.body?.status;
-      if (!['true_positive', 'false_positive'].includes(nextStatus)) {
-        res.status(400).json({ error: 'status must be true_positive or false_positive' });
+      if (!['resolved', 'true_positive', 'false_positive'].includes(nextStatus)) {
+        res.status(400).json({ error: 'status must be resolved, true_positive, or false_positive' });
         return;
       }
 

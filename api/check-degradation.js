@@ -82,7 +82,7 @@ async function checkSource(source, project7Url, project7Key, webhookUrl) {
   const rows = await fetchRecentHealthRows(project7Url, project7Key, source);
   if (rows.length === 0) {
     console.log(`${source}: no health history found`);
-    return;
+    return { slackFired: false };
   }
 
   const latest = rows[0];
@@ -90,31 +90,48 @@ async function checkSource(source, project7Url, project7Key, webhookUrl) {
   if (latest.status === 'degraded' && (!previous || previous.status !== 'degraded')) {
     await sendSlackAlert(webhookUrl, `DEGRADED: ${source} is unreachable or failing. Error: ${latest.error_message || 'unknown error'}`);
     console.log(`${source}: degradation alert sent`);
+    return { slackFired: true };
   } else if (latest.status === 'healthy' && previous?.status === 'degraded') {
     await sendSlackAlert(webhookUrl, `RECOVERED: ${source} is healthy again.`);
     console.log(`${source}: recovery alert sent`);
+    return { slackFired: true };
   } else {
     console.log(`${source}: no degradation state change (${latest.status})`);
+    return { slackFired: false };
   }
 }
 
-async function main() {
+async function runDegradationCheck({ strict = false } = {}) {
   const [project7Url, project7Key, webhookUrl] = getRequiredEnv(
     'PROJECT7_SUPABASE_URL',
     'PROJECT7_SUPABASE_SERVICE_KEY',
     'SLACK_WEBHOOK_URL',
   );
 
-  await Promise.all(sources.map(async (source) => {
+  const results = await Promise.all(sources.map(async (source) => {
     try {
-      await checkSource(source, project7Url, project7Key, webhookUrl);
+      return await checkSource(source, project7Url, project7Key, webhookUrl);
     } catch (error) {
       console.error(`FAILED - ${source} degradation check: ${error.message}`);
+      if (strict) {
+        throw error;
+      }
+      return { slackFired: false };
     }
   }));
+
+  return { slackFired: results.some((result) => result.slackFired) };
 }
 
-main().catch((error) => {
-  console.error(`Degradation check failed: ${error.message}`);
-  process.exitCode = 1;
-});
+async function main() {
+  await runDegradationCheck();
+}
+
+module.exports = { runDegradationCheck };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`Degradation check failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

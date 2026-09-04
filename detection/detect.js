@@ -65,7 +65,7 @@ async function requestJson(endpoint, options) {
 
 async function fetchEvents(source, project7Url, project7Key, cutoff) {
   const endpoint = createEndpoint(project7Url, EVENTS_TABLE);
-  endpoint.searchParams.set('select', 'id,source_row_id,event_timestamp,status');
+  endpoint.searchParams.set('select', 'id,source_row_id,event_timestamp,status,raw_payload');
   endpoint.searchParams.set('source', `eq.${source.name}`);
   endpoint.searchParams.set('event_timestamp', `gte.${cutoff}`);
   endpoint.searchParams.set('order', 'event_timestamp.asc');
@@ -79,6 +79,15 @@ async function fetchEvents(source, project7Url, project7Key, cutoff) {
   }
 
   return events;
+}
+
+function isCountedFailure(event) {
+  if (!FAILURE_STATUSES.has(String(event.status).toLowerCase())) {
+    return false;
+  }
+
+  const retryCount = Number(event.raw_payload?.retry_count);
+  return !Number.isFinite(retryCount) || retryCount === 0;
 }
 
 function getHourlyBuckets(events) {
@@ -95,7 +104,7 @@ function getHourlyBuckets(events) {
     const bucketKey = bucketStart.toISOString();
     const bucket = buckets.get(bucketKey) ?? { total: 0, failures: 0 };
     bucket.total += 1;
-    if (FAILURE_STATUSES.has(String(event.status).toLowerCase())) {
+    if (isCountedFailure(event)) {
       bucket.failures += 1;
     }
     buckets.set(bucketKey, bucket);
@@ -153,7 +162,7 @@ async function detectStatistical(source, events, project7Url, project7Key) {
   const windows = getHourlyBuckets(events);
   if (windows.length < 2) {
     console.log(`${source.label}: statistical check skipped, need at least 2 hourly windows (found ${windows.length})`);
-    return;
+    return 0;
   }
 
   const mostRecent = windows[windows.length - 1];
@@ -167,7 +176,7 @@ async function detectStatistical(source, events, project7Url, project7Key) {
 
   if (zScore <= Z_SCORE_THRESHOLD) {
     console.log(`${source.label}: no statistical anomaly`);
-    return;
+    return 0;
   }
 
   await insertAnomaly(project7Url, project7Key, {
@@ -187,6 +196,7 @@ async function detectStatistical(source, events, project7Url, project7Key) {
     },
   });
   console.log(`${source.label}: statistical anomaly stored`);
+  return 1;
 }
 
 function findRepeatedFailureMatch(events) {
@@ -194,7 +204,7 @@ function findRepeatedFailureMatch(events) {
   let failureStreak = [];
 
   for (const event of events) {
-    if (!FAILURE_STATUSES.has(String(event.status).toLowerCase())) {
+    if (!isCountedFailure(event)) {
       failureStreak = [];
       continue;
     }
@@ -217,7 +227,7 @@ async function detectPattern(source, events, project7Url, project7Key) {
   const matchedEvents = findRepeatedFailureMatch(events);
   if (matchedEvents.length === 0) {
     console.log(`${source.label}: no repeated-failure pattern`);
-    return;
+    return 0;
   }
 
   const firstTimestamp = matchedEvents[0].event_timestamp;
@@ -239,32 +249,48 @@ async function detectPattern(source, events, project7Url, project7Key) {
     },
   });
   console.log(`${source.label}: repeated-failure pattern stored for ${matchedEvents.length} failures`);
+  return 1;
 }
 
 async function detectSource(source, project7Url, project7Key, cutoff) {
   const events = await fetchEvents(source, project7Url, project7Key, cutoff);
   console.log(`${source.label}: checked ${events.length} events from the last ${LOOKBACK_HOURS} hours`);
-  await detectStatistical(source, events, project7Url, project7Key);
-  await detectPattern(source, events, project7Url, project7Key);
+  const statisticalCount = await detectStatistical(source, events, project7Url, project7Key);
+  const patternCount = await detectPattern(source, events, project7Url, project7Key);
+  return statisticalCount + patternCount;
 }
 
-async function main() {
+async function runDetection({ strict = false } = {}) {
   const [project7Url, project7Key] = getRequiredEnv(
     'PROJECT7_SUPABASE_URL',
     'PROJECT7_SUPABASE_SERVICE_KEY',
   );
   const cutoff = new Date(Date.now() - LOOKBACK_HOURS * 60 * 60 * 1000).toISOString();
 
-  await Promise.all(sources.map(async (source) => {
+  const results = await Promise.all(sources.map(async (source) => {
     try {
-      await detectSource(source, project7Url, project7Key, cutoff);
+      return await detectSource(source, project7Url, project7Key, cutoff);
     } catch (error) {
       console.error(`FAILED - ${source.label}: ${error.message}`);
+      if (strict) {
+        throw error;
+      }
+      return 0;
     }
   }));
+
+  return { anomaliesCreated: results.reduce((sum, count) => sum + count, 0) };
 }
 
-main().catch((error) => {
-  console.error(`Detection failed: ${error.message}`);
-  process.exitCode = 1;
-});
+async function main() {
+  await runDetection();
+}
+
+module.exports = { runDetection };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`Detection failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

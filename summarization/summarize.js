@@ -186,9 +186,10 @@ async function summarizeIncident(incident, project7Url, project7Key, openaiApiKe
   const summary = await generateSummary(openaiApiKey, buildPrompt(incident, anomalies));
   await updateIncident(project7Url, project7Key, incident.id, summary);
   console.log(`Incident ${incident.id} processed: ${preview(summary)}`);
+  return 1;
 }
 
-async function main() {
+async function runSummarization({ strict = false } = {}) {
   const [project7Url, project7Key, openaiApiKey] = getRequiredEnv(
     'PROJECT7_SUPABASE_URL',
     'PROJECT7_SUPABASE_SERVICE_KEY',
@@ -198,16 +199,30 @@ async function main() {
   const incidents = await fetchUnsummarizedIncidents(project7Url, project7Key, cutoff);
   console.log(`Found ${incidents.length} incidents without summaries in the last ${SUMMARIZATION_LOOKBACK_HOURS} hours`);
 
-  await Promise.all(incidents.map(async (incident) => {
+  const results = await Promise.all(incidents.map(async (incident) => {
     try {
-      await summarizeIncident(incident, project7Url, project7Key, openaiApiKey);
+      return await summarizeIncident(incident, project7Url, project7Key, openaiApiKey);
     } catch (error) {
       console.error(`FAILED - Incident ${incident.id}: ${error.message}`);
+      if (strict) {
+        throw error;
+      }
+      return 0;
     }
   }));
+
+  return { incidentsSummarized: results.reduce((sum, count) => sum + count, 0) };
 }
 
-main().catch((error) => {
-  console.error(`Summarization failed: ${error.message}`);
-  process.exitCode = 1;
-});
+async function main() {
+  await runSummarization();
+}
+
+module.exports = { runSummarization };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(`Summarization failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

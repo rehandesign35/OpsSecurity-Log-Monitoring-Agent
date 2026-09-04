@@ -8,6 +8,7 @@
     "ingest": "node ingestion/ingest.js",
     "detect": "node detection/detect.js",
     "correlate": "node detection/correlate.js",
+    "run-once": "node detection/run-pipeline-once.js",
     "check-degradation": "node api/check-degradation.js",
     "summarize": "node summarization/summarize.js",
     "alert-and-ticket": "node api/alert-and-ticket.js"

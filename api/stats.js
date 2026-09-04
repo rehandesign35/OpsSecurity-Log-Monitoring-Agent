@@ -24,23 +24,16 @@ module.exports = async function stats(req, res) {
       limit: 500,
     };
     const incidents = await supabaseRequest('incidents', {}, {
-      select: 'id,incident_type,status,created_at',
+      select: 'id,incident_type,status,anomaly_ids,window_start,created_at',
       ...filters,
     });
-    const tickets = await supabaseRequest('tickets', {}, {
-      select: 'incident_id,created_at',
-      created_at: `gte.${getCutoff(query)}`,
-      limit: 500,
-    });
 
-    const resolved = incidents.filter((incident) => ['true_positive', 'false_positive'].includes(incident.status));
+    const detectedIncidents = incidents.filter((incident) => Array.isArray(incident.anomaly_ids) && incident.anomaly_ids.length > 0);
+    const resolved = detectedIncidents.filter((incident) => ['true_positive', 'false_positive'].includes(incident.status));
     const falsePositives = resolved.filter((incident) => incident.status === 'false_positive').length;
-    const ticketByIncident = new Map(tickets.map((ticket) => [String(ticket.incident_id), ticket]));
     const latencies = incidents
       .map((incident) => {
-        const ticket = ticketByIncident.get(String(incident.id));
-        if (!ticket) return null;
-        const latency = new Date(ticket.created_at).getTime() - new Date(incident.created_at).getTime();
+        const latency = new Date(incident.created_at).getTime() - new Date(incident.window_start).getTime();
         return Number.isFinite(latency) && latency >= 0 ? latency : null;
       })
       .filter((latency) => latency !== null);
